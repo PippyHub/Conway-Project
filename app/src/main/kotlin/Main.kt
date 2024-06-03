@@ -1,33 +1,47 @@
+typealias Grid = Array<BooleanArray>
+
 val rows = 20
 val cols = 30
 
-var grid = Array(rows) { BooleanArray(cols) { false } }
+val directions = listOf(-1 to -1, -1 to 0, -1 to 1, 0 to -1, 0 to 1, 1 to -1, 1 to 0, 1 to 1)
 
-fun clone() = grid.map { it.clone() }.toTypedArray()
+fun neighbor(y: Int, x: Int, buffer: Grid): Int = directions.count { (dy, dx) -> buffer[(y + dy + rows) % rows][(x + dx + cols) % cols] }
 
-fun neighbor(y: Int, x: Int, buffer: Array<BooleanArray>): Int {
-    val directions = listOf(-1 to -1, -1 to 0, -1 to 1, 0 to -1, 0 to 1, 1 to -1, 1 to 0, 1 to 1)
-    return directions.count { (dy, dx) -> buffer[(y + dy + rows) % rows][(x + dx + cols) % cols] }
-}
+fun set(y: Int, x: Int, buffer: Grid) = if (buffer[y][x]) neighbor(y, x, buffer) in 2..3 else neighbor(y, x, buffer) == 3
 
-fun set(y: Int, x: Int, alive: Boolean, buffer: Array<BooleanArray>) = if (alive) neighbor(y, x, buffer) in 2..3 else neighbor(y, x, buffer) == 3
+fun step(buffer: Grid): Grid = Array(rows) { y -> BooleanArray(cols) { x -> set(y, x, buffer) } }
 
-fun step(buffer: Array<BooleanArray>) = buffer.forEachIndexed { y, row -> row.forEachIndexed { x, _ -> grid[y][x] = set(y, x, buffer[y][x], buffer) } }
+fun string(grid: Grid) = "\u001b[H\u001b[2J" + grid.joinToString("\n") { it.joinToString(" ") { if (it) "#" else "-" } }
 
-fun str() = "\u001b[H\u001b[2J" + grid.joinToString("\n") { it.joinToString(" ") { if (it) "#" else "-" } }
+fun draw(grid: Grid) = println(string(grid)).also { Thread.sleep(500) }
 
-fun draw() = println(str()).also { Thread.sleep(500) }
+fun game(grid: Grid): Unit = draw(grid).let { game(step(grid)) }
 
-fun game() {
-    grid[0][1] = true
-    grid[1][2] = true
-    grid[2][0] = true
-    grid[2][1] = true
-    grid[2][2] = true
-    while (true) {
-        draw()
-        step(clone())
+fun createGrid(): Grid {
+    return Array(rows) { y ->
+        BooleanArray(cols) { x ->
+            when {
+                y == 0 && x == 2 -> true
+                y == 1 && x == 0 -> true
+                y == 1 && x == 2 -> true
+                y == 2 && x == 1 -> true
+                y == 2 && x == 2 -> true
+                else -> false
+            }
+        }
     }
 }
 
-fun main() = game()
+fun main() = game(createGrid())
+
+//fun render(grid: Grid) = "\u001b[H\u001b[2J" + grid.joinToString("\n") { it.joinToString(" ") { if (it) "#" else "-" } }
+
+
+//fun game(grid: Grid): Grid = println(render(grid)).also { Thread.sleep(500) }.let { game(step(grid)) }
+
+//import java.io.File
+
+//val file = File("source/main/resources/grid")
+
+//fun createGrid(): Grid = Array(rows) { BooleanArray(cols) { false } }
+//  .also { grid -> file.readLines().map { it.split(",").map(String::toInt) }.forEach { (y, x) -> grid[y][x] = true } }
